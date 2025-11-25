@@ -31,12 +31,12 @@ class NavItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.bordeaux.withOpacity(0.1) : Colors.transparent,
+                    color: isSelected ? AppColors.cream.withOpacity(0.1) : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     icon,
-                    color: isSelected ? AppColors.bordeaux : Colors.grey[600],
+                    color: isSelected ? AppColors.cream : Colors.white,
                     size: 26,
                   ),
                 ),
@@ -46,7 +46,7 @@ class NavItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected ? AppColors.bordeaux : Colors.grey[600],
+                    color: isSelected ? AppColors.cream : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -54,7 +54,7 @@ class NavItem extends StatelessWidget {
                   width: isSelected ? 40 : 0,
                   height: 2,
                   decoration: BoxDecoration(
-                    color: AppColors.bordeaux,
+                    color: AppColors.cream,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

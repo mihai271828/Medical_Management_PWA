@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:medical_management_pwa/UI/shared/widgets/home_page/statisticalItem.dart';
 import '../../app_contants.dart';
+import '../../Data/models/appointment_model.dart'; 
+import '../appointment/add_appointment_dialog.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -11,52 +15,72 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDate = DateTime.now();
+  final CollectionReference _appointmentsRef =
+    FirebaseFirestore.instance.collection('appointments');
+
   
-  // Mock data for now
-  final List<Map<String, dynamic>> mockAppointments = [
-    {
-      'patientName': 'John Smith',
-      'time': '09:00',
-      'duration': 30,
-      'reason': 'Regular checkup',
-      'status': 'scheduled',
-    },
-    {
-      'patientName': 'Maria Garcia',
-      'time': '10:30',
-      'duration': 45,
-      'reason': 'Follow-up consultation',
-      'status': 'scheduled',
-    },
-    {
-      'patientName': 'David Chen',
-      'time': '14:00',
-      'duration': 60,
-      'reason': 'Initial consultation',
-      'status': 'completed',
-    },
-  ];
+  void _checkAndAutoComplete(List<Appointment> appointments) {
+    final now = DateTime.now();
+
+    for (var appointment in appointments) {
+      final endTime = appointment.time.add(Duration(minutes: appointment.duration));
+
+      
+      if (appointment.status == 'programat' && now.isAfter(endTime)) {
+        
+        _appointmentsRef.doc(appointment.id).update({'status': 'finalizat'});
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
     return Scaffold(
-      backgroundColor: AppColors.cream, // Cream
+      backgroundColor: AppColors.cream,
       
-      body: SingleChildScrollView(
-        child: Column(
-        children: [
-          _buildDateSelector(),
-          _buildStatsCard(),
-          
-          _buildAppointmentsList(),
-          
-        ],
-      ),),
+      // We wrap the body in a StreamBuilder to listen to DB changes
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _appointmentsRef
+            .where('time', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('time', isLessThan: Timestamp.fromDate(endOfDay))
+            .orderBy('time')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Convert raw DB data to our clean List<Appointment>
+          final appointments = snapshot.data!.docs
+              .map((doc) => Appointment.fromFirestore(doc))
+              .toList();
+
+          _checkAndAutoComplete(appointments);
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildDateSelector(),
+                
+                // Pass the real data to the stats card
+                _buildStatsCard(appointments),
+                
+                _buildAppointmentsList(appointments),
+              ],
+            ),
+          );
+        },
+      ),
       floatingActionButton: _buildFAB(),
     );
   }
-
-  
 
   Widget _buildDateSelector() {
     return Container(
@@ -91,7 +115,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     Text(
-                      DateFormat('EEEE').format(selectedDate),
+                      
+                      DateFormat('EEEE', 'ro_RO').format(selectedDate),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -100,7 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      DateFormat('MMMM d, yyyy').format(selectedDate),
+                     
+                      DateFormat('d MMMM yyyy', 'ro_RO').format(selectedDate),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -129,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 initialDate: selectedDate,
                 firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
+                locale: const Locale('ro', 'RO'), 
                 builder: (context, child) {
                   return Theme(
                     data: Theme.of(context).copyWith(
@@ -160,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(Icons.calendar_today, size: 18, color: Color(0xFF800020)),
                   SizedBox(width: 8),
                   Text(
-                    'Select Date',
+                    'Selectează Data',
                     style: TextStyle(
                       color: Color(0xFF800020),
                       fontWeight: FontWeight.w600,
@@ -175,7 +202,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatsCard() {
+  
+  Widget _buildStatsCard(List<Appointment> appointments) {
+    // Calculate stats dynamically based on Romanian status strings
+    final total = appointments.length;
+    final scheduled = appointments.where((a) => a.status == 'programat').length;
+    final completed = appointments.where((a) => a.status == 'finalizat').length;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
@@ -196,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Statisticalitem(
               icon: Icons.event_note,
               label: 'Total',
-              value: '3',
+              value: total.toString(),
             ),
           ),
           Container(
@@ -207,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Statisticalitem(
               icon: Icons.schedule,
-              label: 'Scheduled',
-              value: '2',
+              label: 'Programate',
+              value: scheduled.toString(),
             ),
           ),
           Container(
@@ -219,8 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Statisticalitem(
               icon: Icons.check_circle,
-              label: 'Completed',
-              value: '1',
+              label: 'Finalizate',
+              value: completed.toString(),
             ),
           ),
         ],
@@ -228,14 +261,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  
-
-  Widget _buildAppointmentsList() {
-    if (mockAppointments.isEmpty) {
+  Widget _buildAppointmentsList(List<Appointment> appointments) {
+    if (appointments.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 40),
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -257,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No appointments scheduled',
+              'Nu există programări',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -266,9 +298,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap the + button to add one',
+              'Apasă butonul + pentru a adăuga',
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
+            const SizedBox(height: 40),
           ],
         ),
       );
@@ -276,19 +309,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: mockAppointments.length,
+      itemCount: appointments.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
-        return _buildAppointmentCard(mockAppointments[index]);
+        return _buildAppointmentCard(appointments[index]);
       },
     );
   }
 
-  Widget _buildAppointmentCard(Map<String, dynamic> appointment) {
-    Color statusColor = appointment['status'] == 'completed'
+  Widget _buildAppointmentCard(Appointment appointment) {
+    // Check for Romanian status strings
+    Color statusColor = appointment.status == 'finalizat'
         ? Colors.green
-        : appointment['status'] == 'cancelled'
+        : appointment.status == 'anulat'
             ? Colors.red
             : AppColors.bordeaux;
 
@@ -308,7 +342,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => AddAppointmentDialog(
+                selectedDate: selectedDate,
+                appointment: appointment, 
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -328,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        appointment['patientName'],
+                        appointment.patientName,
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -341,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 6),
                           Text(
-                            '${appointment['time']} • ${appointment['duration']}min',
+                            '${DateFormat('HH:mm').format(appointment.time)} • ${appointment.duration}min',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -351,14 +393,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      if (appointment['reason'] != null)
+                      if (appointment.reason.isNotEmpty)
                         Row(
                           children: [
                             Icon(Icons.notes_outlined, size: 16, color: Colors.grey[500]),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                appointment['reason'],
+                                appointment.reason,
                                 style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -377,7 +419,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    appointment['status'],
+                    
+                    appointment.status.toUpperCase(),
                     style: TextStyle(
                       fontSize: 12,
                       color: statusColor,
@@ -394,16 +437,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFAB() {
-    return FloatingActionButton.extended(
-      onPressed: () {},
-      backgroundColor: AppColors.bordeaux,
-      foregroundColor: AppColors.cream,
-      elevation: 4,
-      icon: const Icon(Icons.add),
-      label: const Text(
-        'New Appointment',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-      ),
-    );
-  }
+  return FloatingActionButton.extended(
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (context) => AddAppointmentDialog(selectedDate: selectedDate),
+      );
+    },
+    backgroundColor: AppColors.bordeaux,
+    foregroundColor: AppColors.cream,
+    elevation: 4,
+    icon: const Icon(Icons.add),
+    label: const Text(
+      'Programare Nouă',
+      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+    ),
+  );
+}
 }

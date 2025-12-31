@@ -22,28 +22,28 @@ class CustomBottomNavBar extends StatelessWidget {
             children: [
               NavItem(
                 icon: Icons.calendar_today,
-                label: 'Schedule',
+                label: 'Calendar',
                 index: 0,
                 isSelected: currentIndex == 0,
                 onTap: onTap,
               ),
               NavItem(
                 icon: Icons.people_outline,
-                label: 'Patients',
+                label: 'Pacienți',
                 index: 1,
                 isSelected: currentIndex == 1,
                 onTap: onTap,
               ),
               NavItem(
                 icon: Icons.analytics_outlined,
-                label: 'Analytics',
+                label: 'Statistici',
                 index: 2,
                 isSelected: currentIndex == 2,
                 onTap: onTap,
               ),
               NavItem(
                 icon: Icons.settings_outlined,
-                label: 'Settings',
+                label: 'Setări',
                 index: 3,
                 isSelected: currentIndex == 3,
                 onTap: onTap,

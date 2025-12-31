@@ -59,9 +59,6 @@ class _AppScaffoldState extends State<AppScaffold> {
 
 
 
-
-
-
 // Placeholder screens - replace these later
 class PatientsScreen extends StatelessWidget {
   const PatientsScreen({Key? key}) : super(key: key);

@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"semenvitaemanagement","appId":"1:517757517650:android:bdc6adeb29d66e39be048b","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"semenvitaemanagement","configurations":{"android":"1:517757517650:android:bdc6adeb29d66e39be048b","ios":"1:517757517650:ios:6623af406cfb52dbbe048b","macos":"1:517757517650:ios:6623af406cfb52dbbe048b","web":"1:517757517650:web:60c955e5598dba7ebe048b","windows":"1:517757517650:web:e1bb95d3b7295e1bbe048b"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "semenvitaemanagement",
+          "appId": "1:517757517650:android:bdc6adeb29d66e39be048b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "semenvitaemanagement",
+          "configurations": {
+            "android": "1:517757517650:android:bdc6adeb29d66e39be048b",
+            "ios": "1:517757517650:ios:6623af406cfb52dbbe048b",
+            "macos": "1:517757517650:ios:6623af406cfb52dbbe048b",
+            "web": "1:517757517650:web:60c955e5598dba7ebe048b",
+            "windows": "1:517757517650:web:e1bb95d3b7295e1bbe048b"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

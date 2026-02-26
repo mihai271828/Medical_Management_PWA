@@ -25,7 +25,7 @@ void main() async {
   if (kIsWeb) {
     await FirebaseFirestore.instance.clearPersistence();
     FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: false, // dezactivează pe web
+      persistenceEnabled: true, 
     );
   }
 

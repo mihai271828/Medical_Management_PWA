@@ -7,7 +7,6 @@ import '../../Data/models/appointment_model.dart';
 import '../appointment/add_appointment_dialog.dart';
 import '../shared/widgets/home_page/card.dart';
 import '../../Domain/subscription_service/appointment_sync_service.dart';
-import 'package:medical_management_pwa/Domain/home_service/delayed_offline_banner.dart';
 
 
 
@@ -45,14 +44,15 @@ class _HomeScreenState extends State<HomeScreen> {
             .orderBy('time')
             .snapshots(includeMetadataChanges: true),
         builder: (context, snapshot) {
+
+          
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final bool isOffline = snapshot.hasData && snapshot.data!.metadata.isFromCache;
 
           final List<Appointment> appointments = [];
           for (var doc in snapshot.data!.docs) {
@@ -62,14 +62,16 @@ class _HomeScreenState extends State<HomeScreen> {
               debugPrint('Document ignorat (eroare cache) ID: ${doc.id}');
             }
           }
-          AppointmentSyncService.checkAndAutoUpdatePastAppointments(appointments);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+                  AppointmentSyncService.checkAndAutoUpdatePastAppointments(appointments);
+                });
 
           return SingleChildScrollView(
             child: Column(
               children: [
 
 
-                DelayedOfflineBanner(isFromCache: isOffline),
+               
                 _buildDateSelector(),
                 
                

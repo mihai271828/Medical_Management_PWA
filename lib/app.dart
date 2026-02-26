@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:medical_management_pwa/UI/subscriptions/subscriptions_screen.dart';
 import 'UI/home/home_screen.dart';
+import 'UI/subscriptions/subscriptions_screen.dart';
 import 'app_contants.dart';
 import 'UI/shared/widgets/navigation_bar/nav_bar.dart';
-
+import 'package:flutter/services.dart';
+import 'UI/patients/patients_screen.dart';
 class AppScaffold extends StatefulWidget {
   const AppScaffold({Key? key}) : super(key: key);
 
@@ -16,8 +19,9 @@ class _AppScaffoldState extends State<AppScaffold> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const PatientsScreen(),
+    const SubscriptionsScreen(),
     const AnalyticsScreen(),
-    const SettingsScreen(),
+    
   ];
 
   @override
@@ -33,64 +37,24 @@ class _AppScaffoldState extends State<AppScaffold> {
         },
       ),
       appBar: AppBar(
-        title: const Text('Semen Vitae Medical',
-              style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w300,
-              letterSpacing: 2,
-              color:AppColors.cream ,
-            ),
-        ),
-        
-        backgroundColor: AppColors.bordeaux,
-        foregroundColor: AppColors.cream,
-        actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-      ],
+        toolbarHeight: 10, // Îl face invizibil pentru UI-ul tău
+        backgroundColor: AppColors.bordeaux, // Colorează zona de notch
+        elevation: 0, // Scoate umbra
+        systemOverlayStyle: SystemUiOverlayStyle.light, // Face bateria și ceasul albe
       ),
     );
   }
 }
 
 
-
-
-// Placeholder screens - replace these later
-class PatientsScreen extends StatelessWidget {
-  const PatientsScreen({Key? key}) : super(key: key);
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      
-      body: const Center(child: Text('Patients Screen')),
-    );
-  }
-}
-
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: const Center(child: Text('Analytics Screen')),
+    return const Center(
+      child: Text('Analytics Screen', style: TextStyle(fontSize: 18)),
     );
   }
 }
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      
-      body: const Center(child: Text('Settings Screen')),
-    );
-  }
-}

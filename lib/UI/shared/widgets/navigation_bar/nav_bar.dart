@@ -35,19 +35,20 @@ class CustomBottomNavBar extends StatelessWidget {
                 onTap: onTap,
               ),
               NavItem(
-                icon: Icons.analytics_outlined,
-                label: 'Statistici',
+                icon: Icons.card_membership_outlined,
+                label: 'Abonamente',
                 index: 2,
                 isSelected: currentIndex == 2,
                 onTap: onTap,
               ),
               NavItem(
-                icon: Icons.settings_outlined,
-                label: 'Setări',
+                icon: Icons.analytics_outlined,
+                label: 'Statistici',
                 index: 3,
                 isSelected: currentIndex == 3,
                 onTap: onTap,
               ),
+              
               
             ],
           ),

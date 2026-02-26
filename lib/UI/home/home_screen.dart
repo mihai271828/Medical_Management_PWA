@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
-import 'package:medical_management_pwa/UI/shared/widgets/home_page/statisticalItem.dart';
+import 'package:medical_management_pwa/UI/shared/widgets/home_page/statistical_Item.dart';
 import '../../app_contants.dart';
 import '../../Data/models/appointment_model.dart'; 
 import '../appointment/add_appointment_dialog.dart';
+import '../shared/widgets/home_page/card.dart';
+import '../../Domain/subscription_service/appointment_sync_service.dart';
+import 'package:medical_management_pwa/Domain/home_service/delayed_offline_banner.dart';
+
+
+
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,40 +23,27 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDate = DateTime.now();
-  final CollectionReference _appointmentsRef =
-    FirebaseFirestore.instance.collection('appointments');
+  bool _isCalendarExpanded = false;
+  final CollectionReference _appointmentsRef = FirebaseFirestore.instance.collection('appointments');
 
   
-  void _checkAndAutoComplete(List<Appointment> appointments) {
-    final now = DateTime.now();
-
-    for (var appointment in appointments) {
-      final endTime = appointment.time.add(Duration(minutes: appointment.duration));
-
-      
-      if (appointment.status == 'programat' && now.isAfter(endTime)) {
-        
-        _appointmentsRef.doc(appointment.id).update({'status': 'finalizat'});
-      }
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
     
     final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-
     return Scaffold(
       backgroundColor: AppColors.cream,
       
-      // We wrap the body in a StreamBuilder to listen to DB changes
+      
       body: StreamBuilder<QuerySnapshot>(
         stream: _appointmentsRef
-            .where('time', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('time', isGreaterThanOrEqualTo: Timestamp.fromDate(  startOfDay))
             .where('time', isLessThan: Timestamp.fromDate(endOfDay))
             .orderBy('time')
-            .snapshots(),
+            .snapshots(includeMetadataChanges: true),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -57,161 +52,175 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Convert raw DB data to our clean List<Appointment>
-          final appointments = snapshot.data!.docs
-              .map((doc) => Appointment.fromFirestore(doc))
-              .toList();
+          final bool isOffline = snapshot.hasData && snapshot.data!.metadata.isFromCache;
 
-          _checkAndAutoComplete(appointments);
+          final List<Appointment> appointments = [];
+          for (var doc in snapshot.data!.docs) {
+            try {
+              appointments.add(Appointment.fromFirestore(doc));
+            } catch (e) {
+              debugPrint('Document ignorat (eroare cache) ID: ${doc.id}');
+            }
+          }
+          AppointmentSyncService.checkAndAutoUpdatePastAppointments(appointments);
 
           return SingleChildScrollView(
             child: Column(
               children: [
+
+
+                DelayedOfflineBanner(isFromCache: isOffline),
                 _buildDateSelector(),
                 
                 // Pass the real data to the stats card
                 _buildStatsCard(appointments),
                 
+                // Noul Timeline
                 _buildAppointmentsList(appointments),
               ],
             ),
           );
         },
       ),
-      floatingActionButton: _buildFAB(),
+      floatingActionButton: _buildAppleStyleButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
+  // 1. HEADER-UL MODERN (Stil iOS)
   Widget _buildDateSelector() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.bordeaux.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    String dayName = DateFormat('EEEE', 'ro_RO').format(selectedDate);
+    String capitalizedDay = dayName.isNotEmpty ? '${dayName[0].toUpperCase()}${dayName.substring(1)}' : '';
+    
+    String monthName = DateFormat('MMMM', 'ro_RO').format(selectedDate);
+    String capitalizedMonth = monthName.isNotEmpty ? '${monthName[0].toUpperCase()}${monthName.substring(1)}' : '';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Săgeata Stânga (O zi înapoi)
               IconButton(
-                icon: const Icon(Icons.chevron_left, size: 28),
-                color: AppColors.bordeaux,
                 onPressed: () {
                   setState(() {
                     selectedDate = selectedDate.subtract(const Duration(days: 1));
+                    _isCalendarExpanded = false; // Ascundem calendarul dacă era deschis
                   });
                 },
+                icon: const Icon(Icons.chevron_left, color: AppColors.bordeaux, size: 32),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(), // Face zona de tap mai compactă
               ),
+
+              // Butonul central (Data) care deschide/închide calendarul complet
               Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      
-                      DateFormat('EEEE', 'ro_RO').format(selectedDate),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
+                child: InkWell(
+                  onTap: () => setState(() => _isCalendarExpanded = !_isCalendarExpanded),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$capitalizedDay, ${selectedDate.day} $capitalizedMonth',
+                          style: const TextStyle(
+                            fontSize: 22, // Am micșorat puțin fontul ca să încapă perfect cu săgețile
+                            fontWeight: FontWeight.w800, 
+                            color: AppColors.bordeaux,
+                            letterSpacing: -0.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _isCalendarExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                          color: AppColors.bordeaux,
+                          size: 24,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                     
-                      DateFormat('d MMMM yyyy', 'ro_RO').format(selectedDate),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF800020),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
+
+              // Săgeata Dreapta (O zi înainte)
               IconButton(
-                icon: const Icon(Icons.chevron_right, size: 28),
-                color: const Color(0xFF800020),
                 onPressed: () {
                   setState(() {
                     selectedDate = selectedDate.add(const Duration(days: 1));
+                    _isCalendarExpanded = false;
                   });
                 },
+                icon: const Icon(Icons.chevron_right, color: AppColors.bordeaux, size: 32),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-                locale: const Locale('ro', 'RO'), 
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: Color(0xFF800020),
-                        onPrimary: Color(0xFFFFFDD0),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
-              if (date != null) {
-                setState(() {
-                  selectedDate = date;
-                });
-              }
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF800020).withOpacity(0.3)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.calendar_today, size: 18, color: Color(0xFF800020)),
-                  SizedBox(width: 8),
-                  Text(
-                    'Selectează Data',
-                    style: TextStyle(
-                      color: Color(0xFF800020),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          
+          // Calendarul complet inline
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _isCalendarExpanded ? _buildInlineCalendar() : const SizedBox.shrink(),
           ),
         ],
       ),
     );
   }
 
+  // 2. CALENDARUL INLINE CARE APARE LA CLICK
+  Widget _buildInlineCalendar() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.bordeaux.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.bordeaux, 
+            onPrimary: Colors.white, 
+            onSurface: Colors.black87, 
+          ),
+        ),
+        child: CalendarDatePicker(
+          initialDate: selectedDate,
+          
+          firstDate: DateTime(2020), 
+          lastDate: DateTime(2030),
+          onDateChanged: (DateTime newDate) {
+            setState(() {
+              selectedDate = newDate;
+              _isCalendarExpanded = false; 
+            });
+          },
+        ),
+      ),
+    );
+  }
   
   Widget _buildStatsCard(List<Appointment> appointments) {
-    // Calculate stats dynamically based on Romanian status strings
     final total = appointments.length;
     final scheduled = appointments.where((a) => a.status == 'programat').length;
     final completed = appointments.where((a) => a.status == 'finalizat').length;
 
     return Container(
+      height: 100,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.bordeaux,
         borderRadius: BorderRadius.circular(20),
@@ -261,197 +270,185 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  
   Widget _buildAppointmentsList(List<Appointment> appointments) {
-    if (appointments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 40),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.calendar_today_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Nu există programări',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Apasă butonul + pentru a adăuga',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 40),
-          ],
+  // Dacă nu avem nicio programare, afișăm un mesaj sugestiv
+  if (appointments.isEmpty) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 50),
+        child: Text(
+          'Nu există programări pentru această zi.',
+          style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: appointments.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        return _buildAppointmentCard(appointments[index]);
-      },
+      ),
     );
   }
 
-  Widget _buildAppointmentCard(Appointment appointment) {
-    // Check for Romanian status strings
-    Color statusColor = appointment.status == 'finalizat'
-        ? Colors.green
-        : appointment.status == 'anulat'
-            ? Colors.red
-            : AppColors.bordeaux;
+  Set<DateTime> timesToShow = {};
 
+  // 1. Luăm programările și determinăm exact ce ore trebuie să apară pe ecran
+  for (var app in appointments) {
+    // Adăugăm ora exactă de început a programării
+    timesToShow.add(app.time);
+
+    // 2. DACĂ vrei să apară sloturi intermediare (din 30 în 30 min) cât timp programarea e în desfășurare:
+    // (Ex: Programare la 10:00 de 90 min -> va genera rânduri pentru 10:00, 10:30, 11:00)
+    DateTime runningTime = app.time;
+    DateTime appEndTime = app.time.add(Duration(minutes: app.duration));
+
+    // Cât timp următorul interval de 30 min se află în interiorul programării
+    while (runningTime.add(const Duration(minutes: 30)).isBefore(appEndTime)) {
+      runningTime = runningTime.add(const Duration(minutes: 30));
+      timesToShow.add(runningTime);
+    }
+  }
+
+  // 3. Sortăm cronologic orele colectate
+  List<DateTime> sortedTimes = timesToShow.toList()..sort();
+
+  List<Widget> timeSlots = [];
+
+  for (var time in sortedTimes) {
+    // Programările care încep acum
+    final startingApps = appointments.where((app) => app.time.isAtSameMomentAs(time)).toList();
+
+    // Programările care sunt în desfășurare
+    final ongoingApps = appointments.where((app) {
+      final appEndTime = app.time.add(Duration(minutes: app.duration));
+      return app.time.isBefore(time) && appEndTime.isAfter(time);
+    }).toList();
+
+    timeSlots.add(_buildTimeSlotRow(time, startingApps, ongoingApps));
+  }
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    child: Column(
+      children: timeSlots,
+    ),
+  );
+}
+
+  Widget _buildTimeSlotRow(DateTime slotTime, List<Appointment> startingApps, List<Appointment> ongoingApps) {
+  final String timeString = DateFormat('HH:mm').format(slotTime);
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 24.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header-ul orei (Rămâne neschimbat)
+        Row(
+          children: [
+            const Icon(Icons.access_time, size: 18, color: AppColors.bordeaux),
+            const SizedBox(width: 8),
+            Text(
+              timeString,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: AppColors.bordeaux,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Divider(color: AppColors.bordeaux.withOpacity(0.2), thickness: 1.5)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        // 1. CARDURI NORMALE (Care încep acum)
+        ...startingApps.map((app) => InkWell(
+          onTap: () => _openEditDialog(app), 
+          child: BusySlotCard(
+            appointment: app,
+            slotTime: slotTime,
+            selectedDate: selectedDate,
+          ),
+        )).toList(),
+
+        // 2. CARDURI GRI (În desfășurare)
+        ...ongoingApps.map((app) => InkWell(
+          child: _buildOngoingSlotCard(app, slotTime),
+        )).toList(),
+      ],
+    ),
+  );
+}
+
+void _openEditDialog(Appointment app) {
+  showDialog(
+    context: context,
+    builder: (context) => AddAppointmentDialog(
+      selectedDate: selectedDate,
+      appointment: app, 
+    ),
+  );
+}
+
+  Widget _buildOngoingSlotCard(Appointment app, DateTime slotTime) {
+   return ColorFiltered(
+        colorFilter: ColorFilter.mode(
+          Colors.grey.shade400.withOpacity(0.6), 
+          BlendMode.srcATop, 
+        ),
+        child: Opacity(
+          opacity: 0.85, 
+          child: BusySlotCard(
+            appointment: app,
+            slotTime: slotTime,
+            selectedDate: selectedDate, 
+          ),
+        ),
+      );
+  }
+
+  
+
+  Widget _buildAppleStyleButton() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      
+      width: MediaQuery.of(context).size.width * 0.85, 
+      height: 56,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.bordeaux,
+        borderRadius: BorderRadius.circular(28), 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppColors.bordeaux.withOpacity(0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+          borderRadius: BorderRadius.circular(28),
           onTap: () {
             showDialog(
               context: context,
-              builder: (context) => AddAppointmentDialog(
-                selectedDate: selectedDate,
-                appointment: appointment, 
-              ),
+              builder: (context) => AddAppointmentDialog(selectedDate: selectedDate),
             );
           },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.add_circle, color: AppColors.cream, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Programare Nouă',
+                style: TextStyle(
+                  color: AppColors.cream,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600, 
+                  letterSpacing: 0.3,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appointment.patientName,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C2C2C),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${DateFormat('HH:mm').format(appointment.time)} • ${appointment.duration}min',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      if (appointment.reason.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.notes_outlined, size: 16, color: Colors.grey[500]),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                appointment.reason,
-                                style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    
-                    appointment.status.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildFAB() {
-  return FloatingActionButton.extended(
-    onPressed: () {
-      showDialog(
-        context: context,
-        builder: (context) => AddAppointmentDialog(selectedDate: selectedDate),
-      );
-    },
-    backgroundColor: AppColors.bordeaux,
-    foregroundColor: AppColors.cream,
-    elevation: 4,
-    icon: const Icon(Icons.add),
-    label: const Text(
-      'Programare Nouă',
-      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-    ),
-  );
-}
 }

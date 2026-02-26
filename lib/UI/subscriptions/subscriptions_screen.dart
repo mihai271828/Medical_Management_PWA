@@ -44,7 +44,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               style: const TextStyle(color: Colors.black87),
               decoration: InputDecoration(
                 hintText: 'Caută pacient...',
-                hintStyle: TextStyle(color: Colors.grey.shade600),
+                
                 prefixIcon: const Icon(Icons.search, color: AppColors.bordeaux),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -61,7 +61,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
               ),

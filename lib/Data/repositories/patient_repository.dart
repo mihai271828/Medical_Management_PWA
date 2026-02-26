@@ -16,9 +16,10 @@ class PatientRepository {
     await _patientsRef.doc(patient.id).update(patient.toMap());
   }
 
-  Future<void> deletePatient(String id) async {
-    await _patientsRef.doc(id).delete();
+  Future<void> deletePatient(String patientId) async {
+  await _patientsRef.doc(patientId).delete();
   }
+  
 
   Future<List<Patient>> getAllPatients() async {
     final snapshot = await _patientsRef.get();

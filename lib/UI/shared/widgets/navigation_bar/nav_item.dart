@@ -49,15 +49,8 @@ class NavItem extends StatelessWidget {
                     color: isSelected ? AppColors.cream : Colors.white,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Container(
-                  width: isSelected ? 40 : 0,
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: AppColors.cream,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+                const SizedBox(height: 8),
+                
               ],
             ),
           ),

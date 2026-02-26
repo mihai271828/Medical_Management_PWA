@@ -276,17 +276,50 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAppointmentsList(List<Appointment> appointments) {
   // Dacă nu avem nicio programare, afișăm un mesaj sugestiv
   if (appointments.isEmpty) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 50),
-        child: Text(
-          'Nu există programări pentru această zi.',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+        padding: const EdgeInsets.only(top: 80, bottom: 40), // Ajustează spațierea după bunul plac
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2), 
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                Icons.calendar_today_outlined, 
+                size: 50,
+                color: Colors.grey.shade400, 
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Textul principal bold
+            const Text(
+              'Nu există programări',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4A4A4A), 
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            
+          ],
         ),
       ),
     );
   }
-
   Set<DateTime> timesToShow = {};
 
 

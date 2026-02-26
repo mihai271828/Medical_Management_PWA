@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; 
-
 import 'UI/home/home_screen.dart';
 import 'UI/patients/patients_screen.dart';
 import 'package:medical_management_pwa/UI/subscriptions/subscriptions_screen.dart';
@@ -85,7 +84,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           ? const Padding(
                 padding: EdgeInsets.only(bottom: 8.0), 
                 child: Text(
-                  'Sunteți offline. Mod de lucru local.',
+                  'Sunteți offline',
                   style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               )

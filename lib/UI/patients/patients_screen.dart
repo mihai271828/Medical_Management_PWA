@@ -46,7 +46,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
           // LISTA DE PACIENȚI
           Expanded(
             child: StreamBuilder<List<Patient>>(
-              stream: _patientRepo.getPatientsStream(), // Funcția pe care am creat-o anterior
+              stream: _patientRepo.getPatientsStream(), 
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(color: AppColors.bordeaux));

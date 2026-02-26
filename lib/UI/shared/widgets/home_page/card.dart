@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../app_contants.dart'; // Verifică dacă calea e corectă
-import '../../../../Data/models/appointment_model.dart'; // Verifică dacă calea e corectă
+import '../../../../app_contants.dart';
+import '../../../../Data/models/appointment_model.dart';
 
 class BusySlotCard extends StatelessWidget {
   final Appointment appointment;
@@ -19,8 +19,10 @@ class BusySlotCard extends StatelessWidget {
   Color _getServiceColor(String service) {
     final s = service.toLowerCase();
     
-    
-    if (s.contains('acupunctură')) {
+    if (s.contains('masaj deep-tissue') || s.contains('deep tissue')) {
+      return Colors.brown; 
+    }
+    else if (s.contains('acupunctură')) {
       return Colors.teal; 
     } else if (s.contains('masaj')) {
       return Colors.orange; 
@@ -30,7 +32,7 @@ class BusySlotCard extends StatelessWidget {
       return Colors.blueAccent; 
     }
     
-    // Dacă adaugi un serviciu nou pe viitor și nu e în listă, va lua culoarea asta implicită:
+    
     return AppColors.bordeaux; 
   }
 
@@ -64,7 +66,7 @@ class BusySlotCard extends StatelessWidget {
           // AICI ESTE BARA VERTICALĂ COLORATĂ
           decoration: BoxDecoration(
             border: Border(
-              left: BorderSide(color: serviceColor, width: 6), // Lățimea de 6px e perfectă
+              left: BorderSide(color: serviceColor, width: 6), 
             ),
           ),
           padding: const EdgeInsets.all(16),
@@ -101,9 +103,9 @@ class BusySlotCard extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Icon(Icons.notes, size: 16, color: Colors.grey[700]), // Iconița de notițe
-                          const SizedBox(width: 6), // Un mic spațiu între iconiță și text
-                          Expanded( // Expanded previne tăierea urâtă a textului dacă e prea lung
+                          Icon(Icons.notes, size: 16, color: Colors.grey[700]), 
+                          const SizedBox(width: 6), 
+                          Expanded( 
                             child: Text(
                               appointment.reason,
                               style: TextStyle(color: Colors.grey[700], fontSize: 16),

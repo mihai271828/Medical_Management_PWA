@@ -19,11 +19,11 @@ Future<bool?> showCreateSubscriptionPrompt({
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context, false), // Returnează false
+          onPressed: () => Navigator.pop(context, false),
           child: const Text('Nu, alege alt serviciu', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
-          onPressed: () => Navigator.pop(context, true), // Returnează true
+          onPressed: () => Navigator.pop(context, true), 
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.bordeaux,
             foregroundColor: AppColors.cream,

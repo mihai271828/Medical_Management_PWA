@@ -5,7 +5,6 @@ import '../../Data/models/subscription_model.dart';
 
 class AppointmentSyncService {
   
-  // Am transformat funcția în async pentru a putea citi abonamentul în fundal
   static Future<void> checkAndAutoUpdatePastAppointments(List<Appointment> appointments) async {
     final now = DateTime.now();
 
@@ -14,15 +13,12 @@ class AppointmentSyncService {
 
       if (app.status == 'programat' && now.isAfter(endTime)) {
         
-        // 1. Trecem programarea pe finalizat
          await FirebaseFirestore.instance.collection('appointments').doc(app.id).update({
           'status': 'finalizat'
         });
 
-        // 2. Logica inteligentă pentru abonament
         if (app.subscriptionId != null && app.subscriptionId!.isNotEmpty) {
           try {
-            // Citim abonamentul pentru a vedea la a câta ședință suntem
             final subDoc = await FirebaseFirestore.instance.collection('subscriptions').doc(app.subscriptionId).get();
             
             if (subDoc.exists) {

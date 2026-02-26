@@ -9,7 +9,7 @@ class Subscription {
   final int usedSessions; 
   final String status; 
   final DateTime createdAt;
-  final DateTime? completedAt; // NOU: Data în care a fost finalizat (poate fi null inițial)
+  final DateTime? completedAt; 
 
   final double totalPrice;
   final double amountPaid;

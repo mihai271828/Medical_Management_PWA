@@ -72,10 +72,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 DelayedOfflineBanner(isFromCache: isOffline),
                 _buildDateSelector(),
                 
-                // Pass the real data to the stats card
+               
                 _buildStatsCard(appointments),
                 
-                // Noul Timeline
+                
                 _buildAppointmentsList(appointments),
               ],
             ),
@@ -87,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 1. HEADER-UL MODERN (Stil iOS)
+  // 1. HEADER-UL MODERN 
   Widget _buildDateSelector() {
     String dayName = DateFormat('EEEE', 'ro_RO').format(selectedDate);
     String capitalizedDay = dayName.isNotEmpty ? '${dayName[0].toUpperCase()}${dayName.substring(1)}' : '';
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Săgeata Stânga (O zi înapoi)
+            
               IconButton(
                 onPressed: () {
                   setState(() {
@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Săgeata Dreapta (O zi înainte)
+              // Săgeata Dreapta
               IconButton(
                 onPressed: () {
                   setState(() {
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 2. CALENDARUL INLINE CARE APARE LA CLICK
+  //  CALENDARUL INLINE CARE APARE LA CLICK
   Widget _buildInlineCalendar() {
     return Container(
       margin: const EdgeInsets.only(top: 16, bottom: 8),
@@ -287,17 +287,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Set<DateTime> timesToShow = {};
 
-  // 1. Luăm programările și determinăm exact ce ore trebuie să apară pe ecran
+
   for (var app in appointments) {
-    // Adăugăm ora exactă de început a programării
+    
     timesToShow.add(app.time);
 
-    // 2. DACĂ vrei să apară sloturi intermediare (din 30 în 30 min) cât timp programarea e în desfășurare:
-    // (Ex: Programare la 10:00 de 90 min -> va genera rânduri pentru 10:00, 10:30, 11:00)
+    
     DateTime runningTime = app.time;
     DateTime appEndTime = app.time.add(Duration(minutes: app.duration));
 
-    // Cât timp următorul interval de 30 min se află în interiorul programării
+    
     while (runningTime.add(const Duration(minutes: 30)).isBefore(appEndTime)) {
       runningTime = runningTime.add(const Duration(minutes: 30));
       timesToShow.add(runningTime);
@@ -310,10 +309,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> timeSlots = [];
 
   for (var time in sortedTimes) {
-    // Programările care încep acum
+    
     final startingApps = appointments.where((app) => app.time.isAtSameMomentAs(time)).toList();
 
-    // Programările care sunt în desfășurare
+    
     final ongoingApps = appointments.where((app) {
       final appEndTime = app.time.add(Duration(minutes: app.duration));
       return app.time.isBefore(time) && appEndTime.isAfter(time);
@@ -357,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 12),
         
-        // 1. CARDURI NORMALE (Care încep acum)
+        // CARDURI NORMALE (Care încep acum)
         ...startingApps.map((app) => InkWell(
           onTap: () => _openEditDialog(app), 
           child: BusySlotCard(
@@ -367,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         )).toList(),
 
-        // 2. CARDURI GRI (În desfășurare)
+        //  CARDURI GRI (În desfășurare)
         ...ongoingApps.map((app) => InkWell(
           child: _buildOngoingSlotCard(app, slotTime),
         )).toList(),

@@ -12,7 +12,7 @@ class SubscriptionsScreen extends StatefulWidget {
 }
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
-  // Controller-ul pentru Search Bar
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -119,7 +119,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  // Widget ajutător pentru starea "Goală"
+  
   Widget _buildEmptyState(String message) {
     return Center(
       child: Column(

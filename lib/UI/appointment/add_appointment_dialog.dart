@@ -231,7 +231,7 @@ class _AddAppointmentDialogState extends State<AddAppointmentDialog> {
     });
   }
 
-  // OPTIMIZAT PENTRU OFFLINE - Nu mai este Future<void>
+  // OPTIMIZAT PENTRU OFFLINE 
   void _saveAppointment() {
     if (_selectedService == null) {
       _showError('Vă rugăm să selectați un serviciu');
@@ -247,7 +247,7 @@ class _AddAppointmentDialogState extends State<AddAppointmentDialog> {
       if (_selectedPatient != null) {
         finalPatientId = _selectedPatient!.id;
       } else {
-        // Scriere instantanee FĂRĂ await
+        
         final newPatientRef = FirebaseFirestore.instance.collection('patients').doc();
         final newPatient = Patient(id: newPatientRef.id, name: finalPatientName);
         _patientRepo.addPatient(newPatient); 
@@ -262,7 +262,7 @@ class _AddAppointmentDialogState extends State<AddAppointmentDialog> {
       final endTime = appointmentDateTime.add(Duration(minutes: _duration));
       final now = DateTime.now();
 
-      // Setare automată a statusului la programările noi
+      
       if (widget.appointment == null) {
         if (now.isAfter(endTime)) {
           _status = 'finalizat'; 

@@ -19,18 +19,17 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   final appointmentRepo = AppointmentRepository();
   final patientRepo = PatientRepository();
 
-  // Variabile pentru Editare
+
   bool _isEditing = false;
   bool _isLoading = false;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
-  late Patient _currentPatient; // Păstrăm pacientul aici pentru a-i actualiza datele pe ecran
+  late Patient _currentPatient; 
 
   @override
   void initState() {
     super.initState();
     _currentPatient = widget.patient;
-    // Inițializăm controllerele cu datele actuale ale pacientului
     _phoneController = TextEditingController(text: _currentPatient.phone);
     _emailController = TextEditingController(text: _currentPatient.email);
   }
@@ -45,22 +44,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Future<void> _savePatientDetails() async {
     setState(() => _isLoading = true);
 
-    // Creăm un obiect nou cu datele actualizate
+    
     final updatedPatient = Patient(
       id: _currentPatient.id,
-      name: _currentPatient.name, // Numele îl lăsăm neschimbat aici
+      name: _currentPatient.name, 
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
     );
 
     try {
-      // Deoarece addPatient folosește .doc(id).set(), va funcționa perfect ca un UPDATE 
-      // pentru că ID-ul este deja existent în baza de date!
+    
       await patientRepo.addPatient(updatedPatient);
 
       setState(() {
-        _currentPatient = updatedPatient; // Actualizăm UI-ul
-        _isEditing = false;               // Închidem modul de editare
+        _currentPatient = updatedPatient;
+        _isEditing = false;             
         _isLoading = false;
       });
 
@@ -114,7 +112,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     
                     // -- SECȚIUNEA DE AFIȘARE SAU EDITARE --
                     if (_isEditing) ...[
-                      // MODUL DE EDITARE
+                     
                       TextField(
                         controller: _phoneController,
                         decoration: InputDecoration(
@@ -142,7 +140,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         children: [
                           TextButton(
                             onPressed: () {
-                              // Resetăm câmpurile dacă dă cancel
+                             
                               _phoneController.text = _currentPatient.phone;
                               _emailController.text = _currentPatient.email;
                               setState(() => _isEditing = false);
@@ -186,7 +184,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   ],
                 ),
                 
-                // BUTONUL DE EDITARE (CREION) DIN DREAPTA SUS
+                // BUTONUL DE EDITARE 
                 if (!_isEditing)
                   Positioned(
                     top: 0,
@@ -203,7 +201,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           
           const SizedBox(height: 24),
           
-          // 2. ISTORICUL PROGRAMĂRILOR (Rămâne neschimbat)
+          // 2. ISTORICUL PROGRAMĂRILOR 
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 24),
             child: Text('Istoric Servicii', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.bordeaux)),

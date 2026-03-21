@@ -4,15 +4,17 @@ import '../../app_contants.dart'; // VERIFICĂ CALEA
 import '../../Data/models/subscription_model.dart'; // VERIFICĂ CALEA
 import 'subscription_card.dart'; // VERIFICĂ CALEA
 
-class SubscriptionsScreen extends StatefulWidget {
+class SubscriptionsScreen extends StatefulWidget  {
   const SubscriptionsScreen({Key? key}) : super(key: key);
 
   @override
   State<SubscriptionsScreen> createState() => _SubscriptionsScreenState();
 }
 
-class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
+class _SubscriptionsScreenState extends State<SubscriptionsScreen> with AutomaticKeepAliveClientMixin {
 
+  @override
+  bool get wantKeepAlive => true;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -24,6 +26,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Pentru AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: AppColors.cream,
       

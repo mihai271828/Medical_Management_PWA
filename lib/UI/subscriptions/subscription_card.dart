@@ -7,21 +7,28 @@ import '../../Data/models/subscription_model.dart';
 class SubscriptionProgressCard extends StatelessWidget {
   final Subscription subscription;
 
+  // 1. Am scos instanțierea DateFormat în afara metodei build pentru a fi creată o singură dată.
+  static final DateFormat _dateFormat = DateFormat('dd MMM yyyy');
+
   const SubscriptionProgressCard({Key? key, required this.subscription}) : super(key: key);
 
-  
   void _updateSessionCount(BuildContext context, int newCount) {
+    if (newCount > subscription.totalSessions) {
+      newCount = subscription.totalSessions;
+    } else if (newCount < 0) {
+      newCount = 0;
+    }
+    
     try {
       bool isNowFinished = newCount >= subscription.totalSessions;
       String newStatus = isNowFinished ? 'finalizat' : 'activ';
 
-      // Map cu actualizările de bază
       Map<String, dynamic> updates = {
         'usedSessions': newCount,
         'status': newStatus,
       };
 
-      
+      // 2. Logica de actualizare a 'completedAt' se mută aici, unde are loc efectiv acțiunea.
       if (isNowFinished && subscription.status != 'finalizat') {
         updates['completedAt'] = DateTime.now().toIso8601String();
       } else if (!isNowFinished && subscription.status == 'finalizat') {
@@ -36,7 +43,6 @@ class SubscriptionProgressCard extends StatelessWidget {
     }
   }
 
-
   void _deleteSubscription(BuildContext context) {
     showDialog<bool>(
       context: context,
@@ -49,7 +55,7 @@ class SubscriptionProgressCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child:  Text('Anulează', style: TextStyle(color:Colors.grey[700])),
+            child: Text('Anulează', style: TextStyle(color: Colors.grey[700])),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -64,7 +70,7 @@ class SubscriptionProgressCard extends StatelessWidget {
     ).then((confirm) {
       if (confirm == true) {
         try {
-          FirebaseFirestore.instance.collection('subscriptions').doc(subscription.id).delete(); // Ștergere instantanee
+          FirebaseFirestore.instance.collection('subscriptions').doc(subscription.id).delete();
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -84,9 +90,7 @@ class SubscriptionProgressCard extends StatelessWidget {
     });
   }
 
-  // Dialog inteligent pentru editarea sumei totale achitate
   void _showAddPaymentDialog(BuildContext context) {
-    // Pre-completăm căsuța cu suma deja existentă în baza de date!
     final TextEditingController amountController = TextEditingController(
       text: subscription.amountPaid > 0 ? subscription.amountPaid.toStringAsFixed(0) : '',
     );
@@ -102,7 +106,6 @@ class SubscriptionProgressCard extends StatelessWidget {
           children: [
             Text('Preț total abonament: ${subscription.totalPrice} lei', 
                  style: const TextStyle(fontWeight: FontWeight.bold)),
-            
             const SizedBox(height: 14),
             TextField(
               controller: amountController,
@@ -125,19 +128,15 @@ class SubscriptionProgressCard extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () {
-              // Preluăm noua valoare exact cum a fost scrisă
               double newTotalPaid = double.tryParse(amountController.text) ?? 0.0;
-              
-              // Ne asigurăm că nu e negativă și nu depășește prețul total
               if (newTotalPaid < 0) newTotalPaid = 0.0;
               if (newTotalPaid > subscription.totalPrice) newTotalPaid = subscription.totalPrice;
 
-              // Suprascriem suma în Firebase
               FirebaseFirestore.instance.collection('subscriptions').doc(subscription.id).update({
                 'amountPaid': newTotalPaid,
               });
               
-              Navigator.pop(context); // Se închide instantaneu
+              Navigator.pop(context);
             },
             child: const Text('Salvează', style: TextStyle(color: AppColors.cream)),
           ),
@@ -148,19 +147,10 @@ class SubscriptionProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double remainingMoney = subscription.totalPrice - subscription.amountPaid;
-    bool isFinished = subscription.status == 'finalizat' || subscription.usedSessions >= subscription.totalSessions;
-
-    if (isFinished && subscription.completedAt == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        FirebaseFirestore.instance.collection('subscriptions').doc(subscription.id).update({
-          'status': 'finalizat',
-          'completedAt': DateTime.now().toIso8601String(),
-        });
-      });
-    }
-
-    String formattedDate = DateFormat('dd MMM yyyy').format(subscription.createdAt);
+    // 3. Toată logica grea (inclusiv update-urile Firebase din build) a fost ștearsă.
+    final double remainingMoney = subscription.totalPrice - subscription.amountPaid;
+    final bool isFinished = subscription.status == 'finalizat' || subscription.usedSessions >= subscription.totalSessions;
+    final String formattedDate = _dateFormat.format(subscription.createdAt);
 
     return Card(
       color: Colors.white,
@@ -231,7 +221,7 @@ class SubscriptionProgressCard extends StatelessWidget {
                     ),
                     if (isFinished && subscription.completedAt != null)
                       Text(
-                        '  • Finalizat: ${DateFormat('dd MMM yyyy').format(subscription.completedAt!)}',
+                        '  • Finalizat: ${_dateFormat.format(subscription.completedAt!)}',
                         style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                   ],
@@ -252,50 +242,16 @@ class SubscriptionProgressCard extends StatelessWidget {
               style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
             ),
             const SizedBox(height: 12),
+            
+            // 4. Extragerea cercurilor reduce mult memoria alocată la randare.
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: List.generate(subscription.totalSessions, (index) {
-                bool isDone = index < subscription.usedSessions;
-                bool isNextToComplete = index == subscription.usedSessions;
-                bool isLastCompleted = index == subscription.usedSessions - 1;
-                bool isClickable = isNextToComplete || isLastCompleted;
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: isClickable
-                      ? () {
-                          if (isNextToComplete) {
-                            _updateSessionCount(context, subscription.usedSessions + 1);
-                          } else if (isLastCompleted) {
-                            _updateSessionCount(context, subscription.usedSessions - 1);
-                          }
-                        }
-                      : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDone
-                          ? Colors.teal
-                          : (isNextToComplete ? Colors.teal.withOpacity(0.1) : Colors.grey.shade200),
-                      border: Border.all(
-                        color: isDone ? Colors.teal : (isNextToComplete ? Colors.teal : Colors.grey.shade300),
-                        width: isNextToComplete ? 2 : 1,
-                      ),
-                      boxShadow: isNextToComplete
-                          ? [BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 8, spreadRadius: 1)]
-                          : [],
-                    ),
-                    child: isDone
-                        ? const Icon(Icons.check, color: Colors.white, size: 24)
-                        : (isNextToComplete ? const Icon(Icons.touch_app, color: Colors.teal, size: 18) : null),
-                  ),
-                );
+                return _buildSessionCircle(context, index);
               }),
             ),
+            
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.bottomRight,
@@ -307,13 +263,6 @@ class SubscriptionProgressCard extends StatelessWidget {
                     color: remainingMoney > 0 ? Colors.red.shade50 : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: remainingMoney > 0 ? Colors.red.shade200 : Colors.green.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -339,6 +288,46 @@ class SubscriptionProgressCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Extragerea componentei într-o funcție separată pentru a "aerisi" metoda build
+  Widget _buildSessionCircle(BuildContext context, int index) {
+    bool isDone = index < subscription.usedSessions;
+    bool isNextToComplete = index == subscription.usedSessions;
+    bool isLastCompleted = index == subscription.usedSessions - 1;
+    bool isClickable = isNextToComplete || isLastCompleted;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: isClickable
+          ? () {
+              if (isNextToComplete) {
+                _updateSessionCount(context, subscription.usedSessions + 1);
+              } else if (isLastCompleted) {
+                _updateSessionCount(context, subscription.usedSessions - 1);
+              }
+            }
+          : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDone
+              ? Colors.teal
+              : (isNextToComplete ? Colors.teal.withOpacity(0.1) : Colors.grey.shade200),
+          border: Border.all(
+            color: isDone ? Colors.teal : (isNextToComplete ? Colors.teal : Colors.grey[400]!),
+            width: isNextToComplete ? 2 : 1,
+          ),
+          
+        ),
+        child: isDone
+            ? const Icon(Icons.check, color: Colors.white, size: 24)
+            : (isNextToComplete ? const Icon(Icons.touch_app, color: Colors.teal, size: 18) : null),
       ),
     );
   }

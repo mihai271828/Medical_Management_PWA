@@ -5,9 +5,14 @@ import '../../Data/models/subscription_model.dart';
 
 class AppointmentSyncService {
   
+
+  static DateTime? _lastRun;
   static Future<void> checkAndAutoUpdatePastAppointments(List<Appointment> appointments) async {
     final now = DateTime.now();
+    
+    if (_lastRun != null && now.difference(_lastRun!).inSeconds < 5) return;
 
+    _lastRun = now;
     for (var app in appointments) {
       final endTime = app.time.add(Duration(minutes: app.duration));
 

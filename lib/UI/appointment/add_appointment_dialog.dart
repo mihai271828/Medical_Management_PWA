@@ -287,52 +287,15 @@ class _AddAppointmentDialogState extends State<AddAppointmentDialog> {
 
       try {
         
-        bool wasFinalizat = widget.appointment?.status == 'finalizat';
-        bool isNowFinalizat = _status == 'finalizat';
-        bool hadSubscriptionBefore = widget.appointment?.subscriptionId != null && widget.appointment!.subscriptionId!.isNotEmpty;
-        bool hasSubscriptionNow = subId != null && subId.isNotEmpty;
-
-        
-        void updateSubscriptionSessions(String targetSubId, int amount) {
-          int current = _activeSubscription?.usedSessions ?? 0;
-          int total = _activeSubscription?.totalSessions ?? 10;
-          
-          Map<String, dynamic> updates = {
-            'usedSessions': FieldValue.increment(amount)
-          };
-          
-          if (amount > 0 && (current + amount) >= total) {
-            updates['status'] = 'finalizat';
-            updates['completedAt'] = Timestamp.fromDate(appointmentDateTime); 
-          } 
-
-          else if (amount < 0 && current >= total && (current + amount) < total) {
-            updates['status'] = 'activ';
-            updates['completedAt'] = null; 
-          }
-          
-          FirebaseFirestore.instance.collection('subscriptions').doc(targetSubId).update(updates);
-        }
-
         if (widget.appointment == null) {
           
           _repository.addAppointment(newAppointment);
-          if (isNowFinalizat && hasSubscriptionNow) {
-            updateSubscriptionSessions(subId, 1);
-          }
+         
         } else {
          
           _repository.updateAppointment(newAppointment);
           
-          if (!wasFinalizat && isNowFinalizat && hasSubscriptionNow) {
-            updateSubscriptionSessions(subId, 1);
-          }
-          else if (wasFinalizat && !isNowFinalizat && hadSubscriptionBefore) {
-            updateSubscriptionSessions(widget.appointment!.subscriptionId!, -1);
-          }
-          else if (wasFinalizat && isNowFinalizat && !hadSubscriptionBefore && hasSubscriptionNow) {
-            updateSubscriptionSessions(subId, 1);
-          }
+          
         }
 
         if (mounted) {

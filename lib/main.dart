@@ -11,23 +11,31 @@ import 'firebase_options_dev.dart' as dev;
 import 'firebase_options_prod.dart' as prod;
 import 'package:flutter/foundation.dart';
 
+//Flavour command : flutter run --dart-define=FLAVOR=dev
+// commands for prod to deploy and host: 
+// flutter clean
+// flutter pub get
 
+
+// flutter build web --release --dart-define=FLAVOR=prod
+
+// firebase projects:list
+// firebase use <ID-PROIECT-PROD>
+
+
+// firebase deploy --only hosting
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
   final isProd = flavor == 'prod';
+  
   await Firebase.initializeApp(
     options: isProd 
         ? prod.DefaultFirebaseOptions.currentPlatform
         : dev.DefaultFirebaseOptions.currentPlatform,
   );
   
-  if (kIsWeb) {
-    await FirebaseFirestore.instance.clearPersistence();
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true, 
-    );
-  }
+ 
 
   if (!kIsWeb) {
   FirebaseFirestore.instance.settings = const Settings(
@@ -44,6 +52,15 @@ void main() async {
     } catch (e) {
       debugPrint('Failed to connect to emulator: $e');
     }
+  }
+
+  try {
+    final userCredential = await FirebaseAuth.instance.signInAnonymously();
+    debugPrint('Autentificat anonim cu succes! UID: ${userCredential.user?.uid}');
+  } on FirebaseAuthException catch (e) {
+    debugPrint('Eroare Firebase Auth: ${e.code} - ${e.message}');
+  } catch (e) {
+    debugPrint('Eroare necunoscută la autentificare: $e');
   }
 
   await initializeDateFormatting('ro_RO', null);

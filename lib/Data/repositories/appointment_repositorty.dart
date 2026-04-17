@@ -32,7 +32,7 @@ class AppointmentRepository {
   Stream<List<Appointment>> getPatientAppointments(String patientId) {
     return _ref
         .where('patientId', isEqualTo: patientId)
-        // .orderBy('time', descending: true) // Cele mai recente primele
+        .orderBy('time', descending: true) // Cele mai recente primele
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Appointment.fromFirestore(doc)).toList();

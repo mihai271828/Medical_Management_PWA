@@ -11,7 +11,7 @@ import 'firebase_options_dev.dart' as dev;
 import 'firebase_options_prod.dart' as prod;
 import 'package:flutter/foundation.dart';
 
-//Flavour command : flutter run --dart-define=FLAVOR=dev
+//Flavour command : flutter run --dart-define=FLAVOR=dev --chrome
 // commands for prod to deploy and host: 
 // flutter clean
 // flutter pub get
